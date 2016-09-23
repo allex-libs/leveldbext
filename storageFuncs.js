@@ -21,17 +21,44 @@ function createStoreFuncs (execlib, leveldblib, bufferlib, leveldbext) {
     return arry;
   }
 
+  function arrayToArrayOfStrings (arry) {
+    return arry.map(function(item) {return item+'';});
+  }
+
   //store to dbHandler
+  function equalizer(key, elem) {
+    return lib.isEqual(key, elem);
+  }
+
+  function adderToArray (key, valarry) {
+    //console.log('input arry for index save', valarry, 'key is', key);
+    if (!valarry[0].some(equalizer.bind(null, key))) {
+      valarry[0].push(key);
+    }
+    //console.log('arry for index save', valarry);
+    return valarry;
+  }
+
+  function saveIndices(dbwithindices, keysegmentarry, key, result) {
+    var i, promises = [];
+    for (i=1; i<dbwithindices.length; i++) {
+      promises.push(dbwithindices[i].upsert(keysegmentarry[i-1], adderToArray.bind(null, key), [[]]));
+    }
+    return q.all(promises).then(
+      qlib.returner(result)
+    );
+  }
+
   function storeWithIndices(dbwithindices, keysegmentswithdata, options) {
-    var keybuildingfunc, keysegmentarry, key, storagedb;
+    var keybuildingfunc, keysegmentarry, key, storagedb, method;
     if (!lib.isArray(dbwithindices)) {
       return q.reject(new lib.Error('DBWITHINDICIES_NOT_AN_ARRAY','dbwithindices must be an array'));
     }
     if (!lib.isArray(keysegmentswithdata)) {
       return q.reject(new lib.Error('KEYSEGMENTSWITHDATA_NOT_AN_ARRAY','keysegmentswithdata must be an array'));
     }
-    if (keysegmentswithdata.length !== 2) { //index 0 => keysegments, index 1 => data
-      return q.reject(new lib.Error('KEYSEGMENTSWITHDATA_LENGTH_IS_NOT_2','keysegmentswithdata length must be 2'));
+    if (keysegmentswithdata.length < 2) { //index 0 => keysegments, index 1 => data, index 2 => extra param, ...
+      return q.reject(new lib.Error('KEYSEGMENTSWITHDATA_LENGTH_IS_NOT_2','keysegmentswithdata should have at least 2 params'));
     }
     keysegmentarry = keysegmentswithdata[0];
     if (!lib.isArray(keysegmentarry)) {
@@ -47,32 +74,9 @@ function createStoreFuncs (execlib, leveldblib, bufferlib, leveldbext) {
     options = options || {};
     keybuildingfunc = options.keybuilder || keyJoinerWithZeroString;
     key = keybuildingfunc(keysegmentarry);
-    return storagedb.put(key, keysegmentswithdata[1]).then(
+    method = storagedb[options.putmethod || 'put'];
+    return method.apply(storagedb, [key].concat(keysegmentswithdata.slice(1))).then(
       saveIndices.bind(null, dbwithindices, keysegmentarry, key)
-    );
-  }
-
-  function equalizer(key, elem) {
-    return lib.isEqual(key, elem);
-  }
-
-  function adderToArray (key, valarry) {
-    //console.log('input arry for index save', valarry, 'key is', key);
-    if (!valarry[0].some(equalizer.bind(null, key))) {
-      valarry[0].push(key);
-    }
-    //console.log('arry for index save', valarry);
-    return valarry;
-  }
-
-
-  function saveIndices(dbwithindices, keysegmentarry, key, result) {
-    var i, promises = [];
-    for (i=1; i<dbwithindices.length; i++) {
-      promises.push(dbwithindices[i].upsert(keysegmentarry[i-1], adderToArray.bind(null, key), [[]]));
-    }
-    return q.all(promises).then(
-      qlib.returner(result)
     );
   }
   //store to dbHandler end
@@ -125,6 +129,7 @@ function createStoreFuncs (execlib, leveldblib, bufferlib, leveldbext) {
   leveldbext.keyJoinerWithZeroString = keyJoinerWithZeroString;
   leveldbext.keyJoiner2ByteArray = keyJoiner2ByteArray;
   leveldbext.verbatimArray = verbatimArray;
+  leveldbext.arrayToArrayOfStrings = arrayToArrayOfStrings;
 }
 
 module.exports = createStoreFuncs;
