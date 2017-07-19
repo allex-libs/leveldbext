@@ -49,5 +49,5 @@ function createDBHWI (execlib, leveldblib, bufferlib, leveldbext) {
 }
 
 module.exports = function testDBHandlerWIndices1(execlib) {
-  return execlib.loadDependencies('client', ['allex:leveldb:lib', 'allex:buffer:lib', 'allex:leveldbext:lib'], createDBHWI.bind(null, execlib));
+  return execlib.loadDependencies('client', ['allex_leveldblib', 'allex_bufferlib', 'allex_leveldbextlib'], createDBHWI.bind(null, execlib));
 };

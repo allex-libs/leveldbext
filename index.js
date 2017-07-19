@@ -1,5 +1,5 @@
 function libMain(execlib) {
-  return execlib.loadDependencies('client', ['allex:leveldb:lib', 'allex:buffer:lib'], libLoader.bind(null, execlib));
+  return execlib.loadDependencies('client', ['allex_leveldblib', 'allex_bufferlib'], libLoader.bind(null, execlib));
 }
 
 function libLoader(execlib, leveldblib, bufferlib) {
